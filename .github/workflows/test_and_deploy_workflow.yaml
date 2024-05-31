@@ -37,7 +37,7 @@ jobs:
         python -m unittest discover tests
 
     - name: Generate documentation
-      run: poetry run pdoc --output-dir docs ./particulate_matter_report
+      run: poetry run pdoc --output-dir docs ./src
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

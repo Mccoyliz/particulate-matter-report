@@ -10,6 +10,7 @@ logging.basicConfig(level=logging.DEBUG,
 
 
 class ParticulateMatterReport:
+    """A class for ingesting and analysing PM2.5 data."""
 
     def __init__(self, device_id):
         self.THRESHOLD = 30

@@ -1,7 +1,7 @@
 from unittest import TestCase
 from unittest.mock import patch
 import requests
-from particulate_matter_report.particulate_matter_report import ParticulateMatterReport
+from src.particulate_matter_report import ParticulateMatterReport
 
 pm = ParticulateMatterReport('08BEAC0AB11E')
 
