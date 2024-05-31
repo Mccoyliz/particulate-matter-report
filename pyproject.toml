@@ -1,0 +1,16 @@
+[tool.poetry]
+name = "particulate-matter-report"
+version = "0.1.0"
+description = "A project to ingest and analyse PM2.5 data."
+authors = ["Mccoyliz <124638377+Mccoyliz@users.noreply.github.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+requests = "^2.32.3"
+pdoc = "^14.5.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
