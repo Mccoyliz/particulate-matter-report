@@ -1,6 +1,7 @@
 name: Run Unit Tests and Deploy Automated Docs to GitHub Pages
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
