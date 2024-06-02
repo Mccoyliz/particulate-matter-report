@@ -2,6 +2,9 @@ import logging
 import sqlite3
 import requests
 
+from typing import Tuple
+
+
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S',
@@ -9,35 +12,41 @@ logging.basicConfig(level=logging.DEBUG,
                               logging.StreamHandler()])
 
 
-class ParticulateMatterReport:
-    """A class for ingesting and analysing PM2.5 data."""
+class NoRecordsFoundException(Exception):
+    """Custom exception for cases when zero records are returned from the API."""
+    pass
 
-    def __init__(self, device_id):
+
+class ParticulateMatterReport:
+    """A class for ingesting and analysing PM2.5 data from a particular device and project."""
+
+    def __init__(self, device_id: str, project_name: str):
+        self.device_id = device_id
+        self.project_name = project_name
         self.THRESHOLD = 30
         self.API_URL = "https://pm25.lass-net.org/API-1.0.0"
-        self.device_id = device_id
+        self.db_path = "pm25_data.db"
         self.logger = logging.getLogger(f"Particulate Matter Report for device: {self.device_id}")
 
-    def fetch_data(self, device_id: str):
+    def fetch_data(self, device_id: str) -> dict:
         """ Function to fetch data from the API"""
         response = requests.get(f"{self.API_URL}/device/{device_id}/history/")
         response.raise_for_status()  # Raise an exception for HTTP errors
         if response.json()["num_of_records"] == 0:
-            raise Exception(f"Zero Records in history for device id: {device_id}")
+            raise NoRecordsFoundException(f"Zero Records in history for device id: {device_id}")
 
         return response.json()
 
-    @staticmethod
-    def parse_data(data: dict) -> list:
+    def parse_data(self, data: dict) -> list:
         """Returns parsed list of timestamps and PM2.5 values from the API response."""
         parsed_data = []
 
         feeds = data.get('feeds', {})
 
         for feed in feeds:
-            airbox_data = feed.get('AirBox', [])
+            project_data = feed.get(self.project_name, [])
 
-            for record in airbox_data:
+            for record in project_data:
                 for timestamp, values in record.items():
                     pm25 = values.get('s_d0')
                     if pm25 is not None:
@@ -45,27 +54,36 @@ class ParticulateMatterReport:
 
         return parsed_data
 
-    def save_data_to_db(self, data, db_path='pm25_data.db') -> None:
-        """ Function to save data into SQLite database"""
-        conn = sqlite3.connect(db_path)
+    def save_data_to_db(self, data: list) -> None:
+        """ Function to save data into local SQLite database"""
+        conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         cursor.execute('''CREATE TABLE IF NOT EXISTS pm25_data
-                     (timestamp TEXT PRIMARY KEY, pm25 REAL)''')
+                     (timestamp TEXT PRIMARY KEY, pm25 REAL, device_id TEXT, project_name TEXT)''')
 
         # Insert data into the table
         for entry in data:
-            cursor.execute('INSERT OR IGNORE INTO pm25_data (timestamp, pm25) VALUES (?, ?)', entry)
+            cursor.execute(
+                'INSERT OR IGNORE INTO pm25_data (timestamp, pm25, device_id, project_name) VALUES (?, ?, ?, ?)',
+                (entry[0], entry[1], self.device_id, self.project_name))
 
         conn.commit()
         conn.close()
 
-    def analyse_data(self, db_path='pm25_data.db'):
+    def analyse_data(self) -> Tuple[list, dict]:
         """Function to analyse the data"""
-        conn = sqlite3.connect(db_path)
+        conn = sqlite3.connect(self.db_path)
         c = conn.cursor()
 
         # Fetch data from the database
-        c.execute('SELECT timestamp, pm25 FROM pm25_data')
+        c.execute(
+            """
+            SELECT timestamp, pm25 FROM pm25_data
+            WHERE device_id = ?
+                AND project_name = ?
+            """,
+            (self.device_id, self.project_name)
+        )
         rows = c.fetchall()
 
         # Detect periods where PM2.5 goes above the threshold
@@ -90,8 +108,8 @@ class ParticulateMatterReport:
         conn.close()
         return above_threshold, daily_stats
 
-    def generate_report(self, above_threshold, daily_stats) -> None:
-        """Function to generate a report based on sensor data"""
+    def generate_report(self, above_threshold: list, daily_stats: dict) -> None:
+        """Function to generate a report based on sensor data and output to app.log file"""
         self.logger.info(f"Periods where PM2.5 level went above the threshold of 30: {above_threshold}")
 
         self.logger.info("\nDaily PM2.5 statistics:")
@@ -99,9 +117,9 @@ class ParticulateMatterReport:
             self.logger.info(f"Date: {date}, Max: {stats['max']}, Min: {stats['min']}, Avg: {stats['avg']}")
 
     def fetch_device_ids(self) -> list:
-        """Fetches ids for devices in the airbox project that have returned measurements in the last 2 hours"""
+        """Fetches ids for devices in the project that have returned measurements in the last 2 hours"""
 
-        response = requests.get(f"{self.API_URL}/project/airbox/latest/")
+        response = requests.get(f"{self.API_URL}/project/{self.project_name.lower()}/latest/")
         response.raise_for_status()
         devices = response.json()['feeds']
         device_ids = [device['device_id'] for device in devices]
@@ -111,10 +129,13 @@ class ParticulateMatterReport:
         """Read the data for a device, saves the data into local persistent storage and generates a report"""
         try:
             data = self.fetch_data(self.device_id)
-        except Exception(f"Zero Records in history for device id: {self.device_id}"):
+        except NoRecordsFoundException as e:
+            print(e)
             return
-        data = self.parse_data(data)
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+            return
 
-        self.save_data_to_db(data)
+        self.save_data_to_db(self.parse_data(data))
         above_threshold, daily_stats = self.analyse_data()
         self.generate_report(above_threshold, daily_stats)

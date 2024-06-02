@@ -3,7 +3,7 @@ from unittest.mock import patch
 import requests
 from src.particulate_matter_report import ParticulateMatterReport
 
-pm = ParticulateMatterReport('08BEAC0AB11E')
+pm = ParticulateMatterReport('08BEAC0AB11E', 'AirBox')
 
 
 class TestFetchData(TestCase):
@@ -66,7 +66,13 @@ class TestParseData(TestCase):
 
 class TestEdgeCases(TestCase):
     def test_empty_api_response(self):
-        sample_data = {"device_id": "08BEAC0A08AE", "source": "history by IIS-NRL", "num_of_records": 0, "feeds": [], "version": "2024-05-30T14:31:24Z"}
+        sample_data = {
+            "device_id": "08BEAC0A08AE",
+            "source": "history by IIS-NRL",
+            "num_of_records": 0,
+            "feeds": [],
+            "version": "2024-05-30T14:31:24Z"
+        }
         parsed_data = pm.parse_data(sample_data)
         self.assertEqual(parsed_data, [])
 
