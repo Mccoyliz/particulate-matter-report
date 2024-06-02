@@ -79,14 +79,14 @@ make run DEVICE_ID="08BEAC0AB11E" PROJECT_NAME="AirBox"
 
 ## Ideas for Future Development
 Some ideas for improvements to this project that could be made:
- - Run unit tests with [coverage](#https://coverage.readthedocs.io/en/7.5.3/) and add tests so that there is 100% coverage on the repo.
- - Producing a coverage report as a stage in the GitHub actions that is uploaded as a [repo artifact](#https://docs.github.com/en/actions/using-workflows/storing-workflow-data-as-artifacts).
+ - Run unit tests with [coverage](https://coverage.readthedocs.io/en/7.5.3/) and add tests so that there is 100% coverage on the repo.
+ - Producing a coverage report as a stage in the GitHub actions that is uploaded as a [repo artifact](https://docs.github.com/en/actions/using-workflows/storing-workflow-data-as-artifacts).
  - Configuring repo settings such that PR's can only be merged when tests pass and minimum coverage percentage is met.
- - Pre commit hooks to run [black](#https://github.com/psf/black) and [ruff](#https://docs.astral.sh/ruff/) for formatting and linting the code. This avoids contributors commiting code that does not follow code style guidelines.
+ - Pre commit hooks to run [black](https://github.com/psf/black) and [ruff](https://docs.astral.sh/ruff/) for formatting and linting the code. This avoids contributors commiting code that does not follow code style guidelines.
  - Consider other data store options such as time series databases that might be better options than SQLite, if this solution needs to scale:
-   - [QuestDB](#https://questdb.io/)
-   - [InfluxDB](#https://www.influxdata.com/)
-   - [TimescaleDB](#https://www.timescale.com/)
+   - [QuestDB](https://questdb.io/)
+   - [InfluxDB](https://www.influxdata.com/)
+   - [TimescaleDB](https://www.timescale.com/)
  - Consider switching from a local data store to a cloud based solution. This could offer high availability, and disaster recovery options - if the one machine this code runs on goes down we will lose all the data.
 
 ## Further Context
